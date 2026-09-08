@@ -69,10 +69,32 @@ for i, (section_number, section_title, chapter_roman, chapter_name) in enumerate
     # By default, assume it goes till the end of the entire text
     end_position = len(full_text)
 
+    
     # But if there's a next section in our list, the current section ends where the next one starts
+    # We might need to skip sections that don't exist in the text (like 65 [Omitted])
     if i + 1 < len(SECTIONS):
-        next_section_number, next_section_title, _, _ = SECTIONS[i + 1]
-        next_title_start = " ".join(next_section_title.split()[:4])
+        # Look ahead through future sections until we find one that matches in the text
+        for j in range(i + 1, len(SECTIONS)):
+            next_section_number, next_section_title, _, _ = SECTIONS[j]
+            next_title_start = " ".join(next_section_title.split()[:4])
+
+            if len(next_section_number) > 1 and next_section_number[-1].isalpha():
+                next_num_part = next_section_number[:-1]
+                next_alpha_part = next_section_number[-1]
+                next_search_number = rf"{next_num_part}-?{next_alpha_part}"
+            else:
+                next_search_number = re.escape(next_section_number)
+
+            next_pattern = (
+                rf"(?m)^{next_search_number}\.\s+"
+                rf".*?{re.escape(next_title_start)}"
+            )
+
+            next_match = re.search(next_pattern, full_text[start_position:], re.IGNORECASE)
+            if next_match:
+                end_position = start_position + next_match.start()
+                break  # Found the real end — stop looking
+
 
         # Same hyphen logic for the next section number
         if len(next_section_number) > 1 and next_section_number[-1].isalpha():

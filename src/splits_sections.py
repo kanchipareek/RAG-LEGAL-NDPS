@@ -118,6 +118,21 @@ for i, (section_number, section_title, chapter_roman, chapter_name) in enumerate
 
     # Extract the text between start and end — that's our section's content
     section_content = full_text[start_position:end_position].strip()
+        # Section 83 is the last section — it absorbs the Schedule (drug table)
+    # Cut off everything after the actual section text ends
+    if section_number == "83":
+        # The Schedule starts with patterns like "SCHEDULE" or drug entries
+        # Find where the real section 83 text ends (after clause (2))
+        schedule_start = re.search(r'\n\s*(?:THE\s+)?SCHEDULE', section_content, re.IGNORECASE)
+        if schedule_start:
+            section_content = section_content[:schedule_start.start()].strip()
+        else:
+            # If no "SCHEDULE" keyword, look for the drug table pattern
+            # Drug entries start with numbers followed by chemical names
+            drug_table = re.search(r'\n\d+\.\s+[A-Z][A-Z]', section_content)
+            if drug_table:
+                section_content = section_content[:drug_table.start()].strip()
+
 
     # Save this section as a dictionary with all its metadata
     results.append({
